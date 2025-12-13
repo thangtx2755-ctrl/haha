@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <title>THỎ FRUITS</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f5f5;
+            margin: 0;
+        }
+
+        header {
+            background: #ff4d6d;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            font-size: 22px;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .box {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        input,
+        button,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+        }
+
+        button {
+            border: none;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        .add {
+            background: #28a745;
+        }
+
+        .cart-btn {
+            background: #ff9800;
+        }
+
+        .checkout {
+            background: #dc3545;
+        }
+
+        .reset {
+            background: #6c757d;
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .product {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            border-radius: 6px;
+        }
+
+        .product img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .order {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+
+        .admin-only {
+            display: none;
+        }
+
+        .qr-box {
+            background: #f1f1f1;
+            padding: 10px;
+            margin-top: 10px;
+            text-align: center;
+            border-radius: 6px;
+        }
+
+        .qr-box img {
+            width: 200px;
+        }
+
+        #transferModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #transferModal .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+        }
+
+        #transferModal h3 {
+            color: #ff6600;
+            margin-bottom: 10px;
+        }
+
+        #transferModal input[type="file"] {
+            margin: 15px 0;
+        }
+
+        #transferModal button {
+            width: 48%;
+            margin: 5px 1%;
+        }
+
+        #closeModal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>🍓 THỎ FRUITS 🍓</header>
+
+    <div class="container">
+
+        <!-- ADMIN LOGIN -->
+        <div class="box">
+            <h3>🔐 Chế độ chủ shop</h3>
+            <input id="adminPass" type="password" placeholder="Nhập mật khẩu admin">
+            <button class="add" onclick="loginAdmin()">Đăng nhập</button>
+        </div>
+
+        <!-- ADMIN PANEL -->
+        <div class="box admin-only" id="adminPanel">
+            <h3>👨‍💼 Quản lý sản phẩm</h3>
+            <input id="pName" placeholder="Tên sản phẩm">
+            <input id="pPrice" type="number" placeholder="Giá (VNĐ)">
+            <input id="pImage" placeholder="Link hình ảnh">
+            <button class="add" onclick="addProduct()">➕ Thêm sản phẩm</button>
+            <button class="reset" onclick="resetProducts()">🗑 Reset toàn bộ sản phẩm</button>
+
+            <h3>📦 Đơn hàng khách đặt</h3>
+            <div id="orders"></div>
+            <button class="reset" onclick="resetOrders()">🗑 Reset toàn bộ đơn hàng</button>
+        </div>
+
+        <!-- SHOP -->
+        <div class="box">
+            <h3>🛍 Sản phẩm</h3>
+            <div class="products" id="products"></div>
+        </div>
+
+        <!-- CART -->
+        <div class="box">
+            <h3>🛒 Giỏ hàng</h3>
+            <div id="cart"></div>
+            <b>Tổng tiền:</b> <span id="total">0</span> VNĐ
+
+            <input id="address" placeholder="Địa chỉ giao hàng">
+            <input id="phone" placeholder="Số điện thoại (10 số)">
+
+            <select id="payment">
+                <option value="">-- Chọn phương thức thanh toán --</option>
+                <option value="Tiền mặt">💵 Thanh toán tiền mặt</option>
+                <option value="Chuyển khoản">💳 Chuyển khoản ngân hàng</option>
+            </select>
+
+            <button class="checkout" onclick="checkout()">✅ Đặt hàng</button>
+        </div>
+
+        <!-- TRANSFER MODAL -->
+        <div id="transferModal">
+            <div class="modal-content">
+                <span id="closeModal" onclick="closeModal()">×</span>
+                <h3>💳 XÁC NHẬN CHUYỂN KHOẢN</h3>
+                <p>Vui lòng chuyển khoản và tải ảnh biên lai để hoàn tất đơn hàng.</p>
+
+                <!-- QR CODE -->
+                <div class="qr-box">
+                    <b>💳 Thông tin chuyển khoản</b><br><br>
+                    <img src='https://img.vietqr.io/image/vietcombank-0011001483419-compact.jpg' />
+                    <p><b>Ngân hàng:</b> Vietcombank</p>
+                    <p><b>Số TK:</b> 0011001483419</p>
+                    <p><b>Chủ TK:</b> CAM THI THUY ANH</p>
+                    <small>📌 Nội dung CK: SĐT đặt hàng</small>
+                </div>
+
+                <input type="file" id="transferSlip" accept="image/*">
+                <div>
+                    <button class="add" onclick="confirmTransfer()">✅ Xác nhận</button>
+                    <button class="reset" onclick="closeModal()">❌ Hủy</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            const ADMIN_PASSWORD = "Xuanthang0707@";
+            let products = JSON.parse(localStorage.getItem("products")) || [];
+            let orders = JSON.parse(localStorage.getItem("orders")) || [];
+            let cart = [];
+
+            const productsDiv = document.getElementById("products");
+            const cartDiv = document.getElementById("cart");
+            const totalSpan = document.getElementById("total");
+            const ordersDiv = document.getElementById("orders");
+            const payment = document.getElementById("payment");
+            const transferModal = document.getElementById("transferModal");
+            const transferSlip = document.getElementById("transferSlip");
+
+            // ADMIN LOGIN
+            function loginAdmin() {
+                const adminPass = document.getElementById("adminPass");
+                if (adminPass.value === ADMIN_PASSWORD) {
+                    document.querySelectorAll(".admin-only").forEach(e => e.style.display = "block");
+                    renderOrders();
+                    alert("Đăng nhập admin thành công!");
+                } else alert("Sai mật khẩu!");
+            }
+
+            // PRODUCTS
+            function saveProducts() { localStorage.setItem("products", JSON.stringify(products)); }
+            function addProduct() {
+                const pName = document.getElementById("pName").value.trim();
+                const pPrice = document.getElementById("pPrice").value.trim();
+                const pImage = document.getElementById("pImage").value.trim();
+                if (!pName || !pPrice || !pImage) return alert("Nhập đủ thông tin");
+                products.push({ name: pName, price: pPrice, image: pImage });
+                saveProducts(); renderProducts();
+                document.getElementById("pName").value = document.getElementById("pPrice").value = document.getElementById("pImage").value = "";
+            }
+            function renderProducts() {
+                productsDiv.innerHTML = products.map((p, i) => `
+    <div class="product">
+        <img src="${p.image}">
+        <b>${p.name}</b>
+        <p>${p.price} VNĐ</p>
+        <button class="cart-btn" onclick="addToCart(${i})">Thêm giỏ</button>
+    </div>`).join("");
+            }
+            function resetProducts() {
+                if (confirm("XÓA TOÀN BỘ SẢN PHẨM?")) { products = []; saveProducts(); renderProducts(); }
+            }
+
+            // CART
+            function addToCart(i) { cart.push(products[i]); renderCart(); }
+            function renderCart() {
+                let total = 0;
+                cartDiv.innerHTML = cart.map(p => { total += Number(p.price); return `<div>${p.name} - ${p.price} VNĐ</div>` }).join("");
+                totalSpan.innerText = total;
+            }
+
+            // CHECKOUT
+            function checkout() {
+                const address = document.getElementById("address").value.trim();
+                const phone = document.getElementById("phone").value.trim();
+                if (!address) return alert("Nhập địa chỉ");
+                if (!/^\d{10}$/.test(phone)) return alert("SĐT không hợp lệ");
+                if (!payment.value) return alert("Chọn phương thức thanh toán");
+                if (cart.length === 0) return alert("Giỏ hàng trống");
+
+                if (payment.value === "Chuyển khoản") {
+                    transferModal.style.display = "flex"; // hiện modal QR + upload
+                    return;
+                }
+
+                saveOrder({ paid: "Đã thanh toán" });
+            }
+
+            function saveOrder(extra = {}) {
+                const address = document.getElementById("address").value.trim();
+                const phone = document.getElementById("phone").value.trim();
+
+                const newOrder = {
+                    id: Date.now(),
+                    time: new Date().toLocaleString(),
+                    phone: phone,
+                    address: address,
+                    payment: payment.value,
+                    items: cart,
+                    total: totalSpan.innerText,
+                    slip: extra.slip || "",
+                    paid: extra.paid || ""
+                };
+                orders.push(newOrder);
+                localStorage.setItem("orders", JSON.stringify(orders));
+
+                alert("🎉 Đặt hàng thành công!");
+                cart = []; renderCart();
+                document.getElementById("address").value = document.getElementById("phone").value = "";
+                payment.value = ""; transferSlip.value = ""; transferModal.style.display = "none";
+                renderOrders();
+            }
+
+            // TRANSFER MODAL
+            function closeModal() { transferModal.style.display = "none"; transferSlip.value = ""; }
+            function confirmTransfer() {
+                if (!transferSlip.files[0]) return alert("Vui lòng tải ảnh biên lai!");
+                const slipURL = URL.createObjectURL(transferSlip.files[0]);
+                saveOrder({ slip: slipURL, paid: "Chờ admin xác nhận" });
+            }
+
+            // ORDERS
+            function renderOrders() {
+                ordersDiv.innerHTML = orders.map(o => `
+    <div class="order">
+        <b>🕒 ${o.time}</b><br>
+        📞 ${o.phone}<br>
+        📍 ${o.address}<br>
+        💳 ${o.payment}<br>
+        🛒 ${o.items.map(i => i.name).join(", ")}<br>
+        💰 ${o.total} VNĐ<br>
+        ${o.payment === "Chuyển khoản" ? `<a href="${o.slip}" target="_blank">📄 Xem biên lai</a><br>` : ""}
+        <span class="order-status">Trạng thái: ${o.paid}</span><br>
+        ${o.payment === "Chuyển khoản" && o.paid === "Chờ admin xác nhận" ? `<button class="add" onclick="confirmPayment(${o.id})">✅ Xác nhận thanh toán</button>` : ""}
+    </div>`).join("");
+            }
+
+            function confirmPayment(orderId) {
+                const index = orders.findIndex(o => o.id === orderId);
+                if (index !== -1) {
+                    orders[index].paid = "Đã thanh toán";
+                    localStorage.setItem("orders", JSON.stringify(orders));
+                    renderOrders();
+                    alert("✅ Đơn hàng đã được xác nhận thanh toán!");
+                }
+            }
+
+            function resetOrders() {
+                if (confirm("XÓA TOÀN BỘ ĐƠN HÀNG?")) { orders = []; localStorage.setItem("orders", JSON.stringify(orders)); renderOrders(); }
+            }
+
+            // INIT
+            renderProducts();
+            renderOrders();
+        </script>
+
+</body>
+
+</html>
