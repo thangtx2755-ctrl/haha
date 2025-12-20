@@ -1,171 +1,199 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiểm Soát Đơn Hàng</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f4f4f4;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        table, th, td {
-            border: 1px solid #ccc;
-        }
-        th, td {
-            padding: 10px;
-            text-align: left;
-        }
-        input, button {
-            padding: 10px;
-            margin: 5px;
-        }
-        .summary {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #e0f7fa;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Noel Hoàn Chỉnh</title>
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    background: linear-gradient(#000814, #001d3d);
+    font-family: Arial, sans-serif;
+    color: white;
+    overflow: hidden;
+}
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+.center, #start {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 40%;
+    transform: translateY(-50%);
+}
+button {
+    padding: 12px 25px;
+    font-size: 18px;
+    margin: 10px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+}
+.yes { background: #2ecc71; }
+.no  { background: #e74c3c; }
+.santa {
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%) scale(0.1);
+    opacity: 0;
+    transition: 4s ease;
+    z-index: 10;
+}
+.santa.show {
+    top: 20px;
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+}
+.santa img { width: 300px; }
+.result, .noResult {
+    position: absolute;
+    top: 50%;
+    width: 100%;
+    text-align: center;
+    transform: translateY(-50%);
+    display: none;
+}
+.face img {
+    width: 230px;
+    border-radius: 20px;
+    box-shadow: 0 0 25px rgba(255,255,255,0.5);
+    animation: zoomIn 0.8s ease;
+}
+@keyframes zoomIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.message, .noMessage {
+    margin-top: 15px;
+    font-size: 28px;
+    animation: shake 1s infinite;
+}
+.message { color: #ff7675; }
+.noMessage { color: #ff4757; }
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    50% { transform: translateX(3px); }
+    75% { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+}
+</style>
 </head>
+
 <body>
 
-<h1>Kiểm Soát Đơn Hàng</h1>
+<canvas id="snow"></canvas>
 
-<!-- Form nhập thông tin đơn hàng -->
-<form id="orderForm">
-    <label for="workerName">Tên Người Làm:</label>
-    <input type="text" id="workerName" required>
+<!-- Nhạc nền Noel -->
+<audio id="music" src="noel.mp3" loop></audio>
 
-    <label for="orderDate">Ngày:</label>
-    <input type="date" id="orderDate" required>
-    
-    <label for="orderAmount">Mã Tiền:</label>
-    <input type="text" id="orderAmount" required placeholder="Ví dụ: 10, 20, 30">
+<!-- Giọng bạn -->
+<audio id="voice" src="voice.mp3"></audio>
 
-    <button type="submit">Thêm Mã Tiền</button>
-</form>
+<!-- Overlay bắt đầu -->
+<div id="start">
+    <h2>🎄 Nhấn vào đây để bắt đầu 🎄</h2>
+    <button onclick="startGame()">Bắt đầu</button>
+</div>
 
-<!-- Hiển thị hoá đơn của người làm -->
-<h3>Hoá Đơn của Người Làm: <span id="currentWorkerName">Chưa chọn người làm</span></h3>
-<table id="ordersTable">
-    <thead>
-        <tr>
-            <th>Ngày</th>
-            <th>Mã Tiền</th>
-            <th>Tổng Tiền</th>
-            <th>Hành Động</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Dữ liệu đơn hàng sẽ được thêm vào đây -->
-    </tbody>
-</table>
+<!-- Câu hỏi -->
+<div class="center" id="question" style="display:none;">
+    <h2>Bạn có muốn mở quà không, Nam Béo?</h2>
+    <button class="yes" onclick="choose('yes')">CÓ</button>
+    <button class="no" onclick="choose('no')">KHÔNG</button>
+</div>
 
-<!-- Tính tổng tiền của người làm -->
-<div class="summary">
-    <h3>Tổng Tiền Của Người Làm:</h3>
-    <p id="totalAmountDisplay">0 VND</p>
+<!-- Ông già Noel GIF -->
+<div class="santa" id="santa">
+    <img src="santa.gif" alt="Santa">
+</div>
+
+<!-- Kết quả CÓ -->
+<div class="result" id="result">
+    <div class="face">
+        <img src="face.png" alt="face">
+    </div>
+    <div class="message">🎄 Sớm có ny 🎄</div>
+</div>
+
+<!-- Kết quả KHÔNG -->
+<div class="noResult" id="noResult">
+    <div class="noMessage">Mày cút đi thôi 😅</div>
 </div>
 
 <script>
-    // Dữ liệu đơn hàng
-    let orders = [];
-    let currentWorker = ''; // Biến lưu trữ tên người làm hiện tại
+// ===== Bắt đầu game =====
+function startGame() {
+    document.getElementById("start").style.display = "none";
+    document.getElementById("question").style.display = "block";
+    document.getElementById("music").play(); // nhạc chắc chắn chạy sau click
+}
 
-    // Xử lý sự kiện khi nhập tên người làm
-    document.getElementById('workerName').addEventListener('input', function() {
-        currentWorker = document.getElementById('workerName').value;
-        document.getElementById('currentWorkerName').textContent = currentWorker || "Chưa chọn người làm";
-        updateOrdersTable(); // Cập nhật lại bảng khi chọn người làm
-        updateTotalAmount();  // Cập nhật tổng tiền sau khi thay đổi tên
+// ===== Hàm khi bấm CÓ hoặc KHÔNG =====
+function choose(option) {
+    const music = document.getElementById("music");
+    music.pause();
+    music.currentTime = 0;
+
+    document.getElementById("question").style.display = "none";
+    document.getElementById("santa").classList.add("show");
+
+    if(option === 'yes'){
+        setTimeout(() => {
+            document.getElementById("result").style.display = "block";
+            document.getElementById("voice").play();
+        }, 4000);
+    } else {
+        setTimeout(() => {
+            document.getElementById("noResult").style.display = "block";
+        }, 4000);
+    }
+}
+
+// ===== Tuyết rơi =====
+const canvas = document.getElementById("snow");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let flakes = [];
+for (let i = 0; i < 120; i++) {
+    flakes.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 3 + 1,
+        d: Math.random() + 1
     });
+}
+let angle = 0;
+function drawSnow() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    flakes.forEach(f => {
+        ctx.moveTo(f.x, f.y);
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+    });
+    ctx.fill();
 
-    // Xử lý sự kiện thêm mã tiền
-    document.getElementById('orderForm').addEventListener('submit', function(event) {
-        event.preventDefault(); // Ngừng hành động mặc định của form
-
-        const orderDate = document.getElementById('orderDate').value;
-        const orderAmountInput = document.getElementById('orderAmount').value;
-
-        // Tách các mã tiền bằng dấu phẩy và tính tổng
-        const amounts = orderAmountInput.split(',').map(amount => parseFloat(amount.trim())).filter(amount => !isNaN(amount));
-        const totalAmount = amounts.reduce((sum, amount) => sum + amount, 0);
-
-        if (currentWorker && orderDate && totalAmount > 0) {
-            // Thêm mã tiền vào danh sách đơn hàng
-            const newOrder = { worker: currentWorker, date: orderDate, amounts, totalAmount };
-            orders.push(newOrder);
-
-            // Cập nhật bảng và tổng tiền
-            updateOrdersTable();
-            updateTotalAmount();
-        } else {
-            alert("Vui lòng nhập mã tiền hợp lệ.");
+    angle += 0.01;
+    flakes.forEach(f => {
+        f.y += Math.pow(f.d,2);
+        f.x += Math.sin(angle)*0.5;
+        if (f.y > canvas.height){
+            f.y = 0;
+            f.x = Math.random()*canvas.width;
         }
     });
-
-    // Cập nhật bảng hoá đơn của người làm
-    function updateOrdersTable() {
-        const tableBody = document.getElementById('ordersTable').getElementsByTagName('tbody')[0];
-        tableBody.innerHTML = ''; // Xóa tất cả các dòng trước khi cập nhật
-
-        // Lọc đơn hàng theo người làm hiện tại
-        const workerOrders = orders.filter(order => order.worker === currentWorker);
-
-        // Nếu có đơn hàng thì hiển thị, nếu không thì không làm gì
-        if (workerOrders.length > 0) {
-            workerOrders.forEach((order, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${order.date}</td>
-                    <td>${order.amounts.join(', ')}</td>
-                    <td>${formatCurrency(order.totalAmount * 1000)}</td>
-                    <td><button onclick="deleteOrder(${index})">Xóa</button></td>
-                `;
-                tableBody.appendChild(row);
-            });
-        } else {
-            // Nếu không có đơn hàng cho người làm, chỉ hiển thị thông báo
-            const row = document.createElement('tr');
-            row.innerHTML = `<td colspan="4">Không có đơn hàng cho người làm này.</td>`;
-            tableBody.appendChild(row);
-        }
-    }
-
-    // Xóa đơn hàng
-    function deleteOrder(index) {
-        // Xóa đơn hàng khỏi danh sách
-        orders.splice(index, 1);
-
-        // Cập nhật lại bảng và tổng tiền
-        updateOrdersTable();
-        updateTotalAmount();
-    }
-
-    // Cập nhật tổng tiền của người làm
-    function updateTotalAmount() {
-        // Lọc đơn hàng theo người làm hiện tại
-        const workerOrders = orders.filter(order => order.worker === currentWorker);
-
-        // Tính tổng tiền
-        const totalAmount = workerOrders.reduce((sum, order) => sum + order.totalAmount, 0);
-        const totalAmountInVND = totalAmount * 1000; // Chuyển thành VND
-
-        // Hiển thị tổng tiền
-        document.getElementById('totalAmountDisplay').textContent = formatCurrency(totalAmountInVND);
-    }
-
-    // Hàm định dạng tiền tệ với dấu phẩy và thêm chữ "VND"
-    function formatCurrency(amount) {
-        return amount.toLocaleString() + " VND"; // Sử dụng phương thức toLocaleString và thêm "VND"
-    }
+}
+setInterval(drawSnow, 25);
 </script>
 
 </body>
 </html>
+
