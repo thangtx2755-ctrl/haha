@@ -8,7 +8,7 @@
         body {
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #e6e7eb, #1ef7ec);
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -111,10 +111,40 @@
             color: #777;
         }
 
-        /* ===== KHUNG NHẬP BÊN PHẢI ===== */
+        /* ===== BOX KHÁCH >= 10 ĐIỂM ===== */
+        .vip-box {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #ffffff;
+            padding: 15px;
+            width: 260px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        }
+
+        .vip-box h4 {
+            text-align: center;
+            color: #ff9800;
+            margin-bottom: 8px;
+        }
+
+        #vipList div {
+            padding: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        #vipList div:hover {
+            background: #f1f1f1;
+        }
+
+        /* ===== BOX IMPORT ===== */
         .import-box {
             position: fixed;
-            right: 20px;
+            left: 800px;
             top: 50%;
             transform: translateY(-50%);
             background: #ffffff;
@@ -122,6 +152,7 @@
             width: 280px;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            margin-left: 500px;
         }
 
         .import-box h4 {
@@ -133,11 +164,39 @@
         .import-btn {
             background: #6f42c1;
         }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 10px;
+            }
+
+            .vip-box,
+            .import-box {
+                position: static;
+                transform: none;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .box {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 
 <body>
 
+<!-- KHÁCH >= 10 ĐIỂM -->
+<div class="vip-box">
+    <h4>🌟 Khách đủ 10 điểm</h4>
+    <div id="vipList"></div>
+</div>
+
+<!-- FORM CHÍNH -->
 <div class="box">
     <h2><b><i>🍓 THỎ FRUITS 🍓</i></b></h2>
 
@@ -171,7 +230,7 @@
     </div>
 </div>
 
-<!-- ===== NHẬP THEO ĐỊNH DẠNG 📱 SDT — ⭐ ĐIỂM ===== -->
+<!-- IMPORT -->
 <div class="import-box">
     <h4>📥 Dán dữ liệu</h4>
     <textarea id="importData" rows="7"
@@ -180,31 +239,39 @@
 </div>
 
 <script>
-/* ========== CONFIG ========== */
 const ADMIN_PASSWORD = "0965579926";
 
-/* ========== DATA ========== */
 let customers = localStorage.getItem("customers")
     ? JSON.parse(localStorage.getItem("customers"))
     : {};
 
-/* ========== UTILS ========== */
 function isValidPhone(phone) {
     return /^\d{10}$/.test(phone);
 }
 
-/* ========== UI ========== */
 function updateUI() {
     let list = document.getElementById("customerList");
+    let vipList = document.getElementById("vipList");
+
     list.innerHTML = "";
+    vipList.innerHTML = "";
 
     let count = 0;
+
     for (let phone in customers) {
         count++;
+
         list.innerHTML += `
             <div onclick="selectPhone('${phone}')">
                 📱 ${phone} — ⭐ ${customers[phone]} điểm
             </div>`;
+
+        if (customers[phone] >= 10) {
+            let div = document.createElement("div");
+            div.innerHTML = `📱 <b>${phone}</b> — ⭐ ${customers[phone]}`;
+            div.onclick = () => selectPhone(phone);
+            vipList.appendChild(div);
+        }
     }
 
     document.getElementById("totalCustomers").innerText = count;
@@ -216,7 +283,6 @@ function selectPhone(phone) {
     document.getElementById("suggestions").style.display = "none";
 }
 
-/* ========== LOGIC GỐC ========== */
 function addPoints() {
     let phone = document.getElementById("phone").value.trim();
     let money = parseInt(document.getElementById("money").value);
@@ -225,12 +291,9 @@ function addPoints() {
     if (!money || money <= 0) return alert("❌ Số tiền không hợp lệ!");
 
     if (!customers[phone]) customers[phone] = 0;
-
-    let earned = Math.floor(money / 100);
-    customers[phone] += earned;
+    customers[phone] += Math.floor(money / 100);
 
     save(phone);
-    alert("✅ Đã cộng " + earned + " điểm");
     document.getElementById("money").value = "";
 }
 
@@ -239,20 +302,16 @@ function redeemPoints() {
     let amount = parseInt(document.getElementById("redeemAmount").value);
 
     if (!customers[phone]) return alert("❌ Không tìm thấy khách!");
-    if (!amount || amount <= 0) return alert("❌ Nhập số điểm muốn trừ!");
     if (customers[phone] < amount) return alert("❌ Không đủ điểm!");
 
     customers[phone] -= amount;
     save(phone);
-    alert("🎁 Đã trừ " + amount + " điểm");
     document.getElementById("redeemAmount").value = "";
 }
 
 function resetPoints() {
     let phone = document.getElementById("phone").value.trim();
-    if (!customers[phone]) return alert("❌ Không tìm thấy khách!");
-
-    if (confirm("RESET điểm khách này?")) {
+    if (customers[phone] && confirm("Reset điểm khách này?")) {
         customers[phone] = 0;
         save(phone);
     }
@@ -260,34 +319,24 @@ function resetPoints() {
 
 function deleteCustomer() {
     let phone = document.getElementById("phone").value.trim();
-    if (!customers[phone]) return alert("❌ Không tìm thấy khách!");
+    if (!customers[phone]) return;
 
-    if (!confirm("⚠️ Xóa khách này?")) return;
-    delete customers[phone];
-
-    localStorage.setItem("customers", JSON.stringify(customers));
-    document.getElementById("phone").value = "";
-    document.getElementById("points").innerText = 0;
-
-    updateUI();
-    alert("✅ Đã xóa khách!");
+    if (confirm("Xóa khách này?")) {
+        delete customers[phone];
+        localStorage.setItem("customers", JSON.stringify(customers));
+        updateUI();
+        document.getElementById("phone").value = "";
+        document.getElementById("points").innerText = 0;
+    }
 }
 
 function resetAllCustomers() {
-    let pass = document.getElementById("adminPass").value;
-    if (pass !== ADMIN_PASSWORD) return alert("❌ Sai mật khẩu!");
-
-    if (!confirm("⚠️ Xóa TOÀN BỘ danh sách?")) return;
-
-    customers = {};
-    localStorage.removeItem("customers");
-
-    document.getElementById("phone").value = "";
-    document.getElementById("points").innerText = 0;
-    document.getElementById("adminPass").value = "";
-
-    updateUI();
-    alert("🗑 Đã reset toàn bộ!");
+    if (document.getElementById("adminPass").value !== ADMIN_PASSWORD) return;
+    if (confirm("Xóa toàn bộ danh sách?")) {
+        customers = {};
+        localStorage.removeItem("customers");
+        updateUI();
+    }
 }
 
 function save(phone) {
@@ -296,62 +345,17 @@ function save(phone) {
     updateUI();
 }
 
-/* ===== IMPORT ĐỊNH DẠNG 📱 SDT — ⭐ ĐIỂM ===== */
 function importCustomers() {
-    let text = document.getElementById("importData").value.trim();
-    if (!text) return alert("❌ Chưa nhập dữ liệu!");
-
-    let lines = text.split("\n");
-    let added = 0;
-
+    let lines = document.getElementById("importData").value.split("\n");
     lines.forEach(line => {
-        let match = line.match(/📱\s*(\d{10})\s*—\s*⭐\s*(\d+)\s*điểm/i);
-        if (!match) return;
-
-        let phone = match[1];
-        let point = parseInt(match[2]);
-
-        if (isValidPhone(phone)) {
-            customers[phone] = point;
-            added++;
-        }
+        let m = line.match(/📱\s*(\d{10}).*⭐\s*(\d+)/);
+        if (m) customers[m[1]] = parseInt(m[2]);
     });
-
     localStorage.setItem("customers", JSON.stringify(customers));
     updateUI();
     document.getElementById("importData").value = "";
-
-    alert("✅ Đã lưu " + added + " khách vào danh sách!");
 }
 
-/* ========== EVENTS ========== */
-document.getElementById("phone").addEventListener("input", function () {
-    let value = this.value.trim();
-    let suggestions = document.getElementById("suggestions");
-    suggestions.innerHTML = "";
-
-    document.getElementById("points").innerText =
-        customers[value] ? customers[value] : 0;
-
-    if (value.length < 3) {
-        suggestions.style.display = "none";
-        return;
-    }
-
-    for (let phone in customers) {
-        if (phone.includes(value)) {
-            let div = document.createElement("div");
-            div.innerHTML = `📱 <b>${phone}</b> — ⭐ ${customers[phone]} điểm`;
-            div.onclick = () => selectPhone(phone);
-            suggestions.appendChild(div);
-        }
-    }
-
-    suggestions.style.display =
-        suggestions.innerHTML === "" ? "none" : "block";
-});
-
-/* ========== INIT ========== */
 updateUI();
 </script>
 
