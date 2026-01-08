@@ -64,7 +64,7 @@ button{
 .list div{padding:6px;cursor:pointer}
 .list div:hover{background:#eee}
 
-/* ===== AUTOCOMPLETE ===== */
+/* AUTOCOMPLETE */
 .suggestions{
     position:absolute;
     background:#fff;
@@ -85,7 +85,7 @@ button{
 }
 .suggestions div:hover{background:#f2f4ff}
 
-/* ===== VIP BOX ===== */
+/* VIP */
 .vip-box{
     position:fixed;
     left:20px;
@@ -100,7 +100,7 @@ button{
 .vip-box h4{text-align:center;color:#ff9800}
 #vipList div{padding:6px;border-bottom:1px solid #eee;cursor:pointer}
 
-/* ===== IMPORT BOX ===== */
+/* IMPORT */
 .import-box{
     position:fixed;
     top:50%;
@@ -109,7 +109,7 @@ button{
     padding:15px;
     width:280px;
     border-radius:12px;
-    margin-left: 900px;
+    margin-left:900px;
     box-shadow:0 10px 25px rgba(0,0,0,.25);
 }
 .import-box h4{text-align:center;color:#6f42c1}
@@ -121,125 +121,156 @@ button{
 
 <!-- VIP -->
 <div class="vip-box">
-<h4>🌟 Khách ≥ 10 điểm</h4>
-<div id="vipList"></div>
+    <h4>🌟 Khách ≥ 10 điểm</h4>
+    <div id="vipList"></div>
 </div>
 
 <!-- FORM -->
 <div class="box">
-<h2>🍓 THỎ FRUITS 🍓</h2>
+    <h2>🍓 THỎ FRUITS 🍓</h2>
 
-<input id="phone" placeholder="Nhập số điện thoại">
-<div class="suggestions" id="suggestions"></div>
+    <input id="phone" placeholder="Nhập số điện thoại">
+    <div class="suggestions" id="suggestions"></div>
 
-<input id="money" type="number" placeholder="Nhập tiền (100 = 1 điểm)">
-<input id="redeemAmount" type="number" placeholder="Số điểm muốn trừ">
+    <input id="money" type="number" placeholder="Nhập tiền (100 = 1 điểm)">
+    <input id="redeemAmount" type="number" placeholder="Số điểm muốn trừ">
 
-<button class="add" onclick="addPoints()">➕ Cộng điểm</button>
-<button class="redeem" onclick="redeemPoints()">🎁 Trừ điểm</button>
-<button class="reset" onclick="resetPoints()">♻ Reset điểm</button>
-<button class="reset" onclick="deleteCustomer()">❌ Xóa khách</button>
+    <button class="add" onclick="addPoints()">➕ Cộng điểm</button>
+    <button class="redeem" onclick="redeemPoints()">🎁 Trừ điểm</button>
+    <button class="reset" onclick="resetPoints()">♻ Reset điểm</button>
+    <button class="reset" onclick="deleteCustomer()">❌ Xóa khách</button>
 
-<input type="password" id="adminPass" placeholder="Mật khẩu admin">
-<button class="reset" onclick="resetAllCustomers()">🗑 Reset toàn bộ</button>
+    <input type="password" id="adminPass" placeholder="Mật khẩu admin">
+    <button class="reset" onclick="resetAllCustomers()">🗑 Reset toàn bộ</button>
 
-<div class="info">Điểm hiện tại: <span id="points">0</span></div>
-<div class="info">Tổng khách: <span id="totalCustomers">0</span></div>
+    <div class="info">Điểm hiện tại: <span id="points">0</span></div>
+    <div class="info">Tổng khách: <span id="totalCustomers">0</span></div>
 
-<div class="list" id="customerList"></div>
+    <div class="list" id="customerList"></div>
 </div>
 
 <!-- IMPORT -->
 <div class="import-box">
-<h4>📥 Dán dữ liệu</h4>
-<textarea id="importData" rows="7"
-placeholder="📱 0374244904 — ⭐ 5 điểm"></textarea>
-<button class="import-btn" onclick="importCustomers()">💾 Lưu</button>
+    <h4>📥 Dán dữ liệu</h4>
+    <textarea id="importData" rows="7" placeholder="📱 0374244904 — ⭐ 5 điểm"></textarea>
+    <button class="import-btn" onclick="importCustomers()">💾 Lưu</button>
 </div>
 
 <script>
-const ADMIN_PASSWORD="0965579926";
-let customers=JSON.parse(localStorage.getItem("customers")||"{}");
-const phoneInput=document.getElementById("phone");
-const suggestions=document.getElementById("suggestions");
+const ADMIN_PASSWORD = "0965579926";
+let customers = JSON.parse(localStorage.getItem("customers") || "{}");
+
+const phoneInput = document.getElementById("phone");
+const suggestions = document.getElementById("suggestions");
 
 /* AUTOCOMPLETE */
-phoneInput.addEventListener("input",()=>{
-    let v=phoneInput.value.trim();
-    suggestions.innerHTML="";
-    if(!v)return suggestions.style.display="none";
+phoneInput.addEventListener("input", () => {
+    let v = phoneInput.value.trim();
+    suggestions.innerHTML = "";
+    if (!v) return suggestions.style.display = "none";
+
     Object.keys(customers)
-    .filter(p=>p.startsWith(v))
-    .forEach(p=>{
-        let d=document.createElement("div");
-        d.innerHTML=`<b>${p}</b><span>⭐ ${customers[p]}</span>`;
-        d.onclick=()=>selectPhone(p);
-        suggestions.appendChild(d);
-    });
-    suggestions.style.display="block";
+        .filter(p => p.startsWith(v))
+        .forEach(p => {
+            let d = document.createElement("div");
+            d.innerHTML = `<b>${p}</b><span>⭐ ${customers[p]}</span>`;
+            d.onclick = () => selectPhone(p);
+            suggestions.appendChild(d);
+        });
+
+    suggestions.style.display = "block";
 });
 
 function selectPhone(p){
-    phoneInput.value=p;
-    document.getElementById("points").innerText=customers[p];
-    suggestions.style.display="none";
+    phoneInput.value = p;
+    document.getElementById("points").innerText = customers[p];
+    suggestions.style.display = "none";
 }
 
 function updateUI(){
-    let list=document.getElementById("customerList");
-    let vip=document.getElementById("vipList");
-    list.innerHTML="";vip.innerHTML="";
-    let count=0;
+    let list = document.getElementById("customerList");
+    let vip = document.getElementById("vipList");
+    list.innerHTML = "";
+    vip.innerHTML = "";
+    let count = 0;
+
     for(let p in customers){
         count++;
-        list.innerHTML+=`<div onclick="selectPhone('${p}')">📱 ${p} — ⭐ ${customers[p]}</div>`;
-        if(customers[p]>=10)
-            vip.innerHTML+=`<div onclick="selectPhone('${p}')">📱 ${p} ⭐ ${customers[p]}</div>`;
+        list.innerHTML += `<div onclick="selectPhone('${p}')">📱 ${p} — ⭐ ${customers[p]}</div>`;
+        if(customers[p] >= 10)
+            vip.innerHTML += `<div onclick="selectPhone('${p}')">📱 ${p} ⭐ ${customers[p]}</div>`;
     }
-    document.getElementById("totalCustomers").innerText=count;
+    document.getElementById("totalCustomers").innerText = count;
 }
 
 function save(){
-    localStorage.setItem("customers",JSON.stringify(customers));
+    localStorage.setItem("customers", JSON.stringify(customers));
     updateUI();
 }
 
+/* ===== CỘNG ĐIỂM ===== */
 function addPoints(){
-    let p=phoneInput.value.trim();
-    let m=parseInt(money.value);
-    if(!/^\d{10}$/.test(p)||!m)return;
-    customers[p]=(customers[p]||0)+Math.floor(m/100);
+    let p = phoneInput.value.trim();
+    let m = parseInt(money.value);
+
+    if(!/^\d{10}$/.test(p) || !m) return;
+
+    let added = Math.floor(m / 100);
+    if(added <= 0) return;
+
+    customers[p] = (customers[p] || 0) + added;
+    document.getElementById("points").innerText = customers[p];
+
+    alert(`✅ Đã cộng ${added} điểm`);
     save();
 }
 
+/* ===== TRỪ ĐIỂM ===== */
 function redeemPoints(){
-    let p=phoneInput.value.trim();
-    let a=parseInt(redeemAmount.value);
-    if(!customers[p]||customers[p]<a)return;
-    customers[p]-=a;save();
+    let p = phoneInput.value.trim();
+    let a = parseInt(redeemAmount.value);
+
+    if(!customers[p] || !a || customers[p] < a) return;
+
+    customers[p] -= a;
+    document.getElementById("points").innerText = customers[p];
+
+    alert(`🎁 Đã trừ ${a} điểm`);
+    save();
 }
 
 function resetPoints(){
-    let p=phoneInput.value.trim();
-    if(customers[p]){customers[p]=0;save();}
+    let p = phoneInput.value.trim();
+    if(customers[p]){
+        customers[p] = 0;
+        document.getElementById("points").innerText = 0;
+        save();
+    }
 }
 
 function deleteCustomer(){
-    let p=phoneInput.value.trim();
-    if(customers[p]){delete customers[p];save();}
+    let p = phoneInput.value.trim();
+    if(customers[p]){
+        delete customers[p];
+        document.getElementById("points").innerText = 0;
+        save();
+    }
 }
 
 function resetAllCustomers(){
-    if(adminPass.value!==ADMIN_PASSWORD)return;
-    customers={};save();
+    if(adminPass.value !== ADMIN_PASSWORD) return;
+    customers = {};
+    document.getElementById("points").innerText = 0;
+    save();
 }
 
 function importCustomers(){
-    importData.value.split("\n").forEach(l=>{
-        let m=l.match(/(\d{10}).*⭐\s*(\d+)/);
-        if(m)customers[m[1]]=+m[2];
+    importData.value.split("\n").forEach(l => {
+        let m = l.match(/(\d{10}).*⭐\s*(\d+)/);
+        if(m) customers[m[1]] = +m[2];
     });
-    save();importData.value="";
+    save();
+    importData.value = "";
 }
 
 updateUI();
