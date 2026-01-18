@@ -1,283 +1,348 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<title>THỎ FRUITS</title>
+<!DOCTYPE html> 
+<html lang="vi"> 
+<head> 
+<meta charset="UTF-8"> 
+<title>THỎ FRUITS</title> 
+ 
+<style> 
+body{ 
+    font-family: Arial, sans-serif; 
+    background: linear-gradient(135deg,#e6e7eb,#1ef7ec); 
+    min-height:100vh; 
+    display:flex; 
+    justify-content:center; 
+    align-items:center; 
+} 
+.box{ 
+    background:#fff; 
+    padding:25px; 
+    width:500px; 
+    border-radius:12px; 
+    box-shadow:0 10px 25px rgba(0,0,0,.25); 
+    position:relative; 
+} 
+h2{text-align:center;color:#4b1cce;letter-spacing:2px} 
+input,textarea{ 
+    width:100%; 
+    padding:10px; 
+    margin-top:8px; 
+    font-size:15px; 
+    border-radius:6px; 
+    border:1px solid #ccc; 
+} 
+button{ 
+    width:100%; 
+    padding:10px; 
+    margin-top:8px; 
+    font-size:15px; 
+    border:none; 
+    border-radius:6px; 
+    cursor:pointer; 
+    color:#fff; 
+} 
+.add{background:#28a745} 
+.redeem{background:#ff9800} 
+.reset{background:#dc3545} 
+ 
+.info{ 
+    margin-top:10px; 
+    background:#f1f1f1; 
+    padding:10px; 
+    border-radius:6px; 
+    text-align:center; 
+    font-size:16px; 
+    font-weight:bold; 
+} 
+.list{ 
+    margin-top:10px; 
+    max-height:160px; 
+    overflow-y:auto; 
+    border:1px solid #ddd; 
+    border-radius:6px; 
+    font-size:14px; 
+} 
+.list div{padding:6px;cursor:pointer} 
+.list div:hover{background:#eee} 
+ 
+/* AUTOCOMPLETE */ 
+.suggestions{ 
+    position:absolute; 
+    background:#fff; 
+    border:1px solid #ddd; 
+    border-radius:10px; 
+    max-height:160px; 
+    overflow-y:auto; 
+    display:none; 
+    width:calc(100% - 50px); 
+    z-index:20; 
+    box-shadow:0 8px 20px rgba(0,0,0,.15); 
+} 
+.suggestions div{ 
+    padding:10px 12px; 
+    display:flex; 
+    justify-content:space-between; 
+    cursor:pointer; 
+} 
+.suggestions div:hover{background:#f2f4ff} 
+ 
+/* VIP */ 
+.vip-box{ 
+    position:fixed; 
+    left:20px; 
+    top:50%; 
+    transform:translateY(-50%); 
+    background:#fff; 
+    padding:15px; 
+    width:260px; 
+    border-radius:12px; 
+    box-shadow:0 10px 25px rgba(0,0,0,.25); 
+} 
+.vip-box h4{text-align:center;color:#ff9800} 
+#vipList div{padding:6px;border-bottom:1px solid #eee;cursor:pointer} 
+ 
+/* IMPORT */ 
+.import-box{ 
+    position:fixed; 
+    top:50%; 
+    transform:translateY(-50%); 
+    background:#fff; 
+    padding:15px; 
+    width:280px; 
+    border-radius:12px; 
+    margin-left:900px; 
+    box-shadow:0 10px 25px rgba(0,0,0,.25); 
+} 
+.import-box h4{text-align:center;color:#6f42c1} 
+.import-btn{background:#6f42c1} 
+</style> 
+</head> 
+ 
+<body> 
+ 
+<!-- VIP --> 
+<div class="vip-box"> 
+    <h4>🌟 Khách ≥ 10 điểm</h4> 
+    <div id="vipList"></div> 
+</div> 
+ 
+<!-- FORM --> 
+<div class="box"> 
+    <h2>🍓 THỎ FRUITS 🍓</h2> 
+ 
+    <input id="phone" placeholder="Nhập số điện thoại"> 
+    <div class="suggestions" id="suggestions"></div> 
+ 
+    <input id="money" type="number" placeholder="Nhập tiền (100 = 1 điểm)"> 
+    <input id="redeemAmount" type="number" placeholder="Số điểm muốn trừ"> 
+ 
+    <button class="add" onclick="addPoints()">➕ Cộng điểm</button> 
+    <button class="redeem" onclick="redeemPoints()">🎁 Trừ điểm</button> 
+    <button class="reset" onclick="resetPoints()">♻ Reset điểm</button> 
+    <button class="reset" onclick="deleteCustomer()">❌ Xóa khách</button> 
+ 
+    <input type="password" id="adminPass" placeholder="Mật khẩu admin"> 
+    <button class="reset" onclick="resetAllCustomers()">🗑 Reset toàn bộ</button> 
+ 
+    <div class="info">Điểm hiện tại: <span id="points">0</span></div> 
+    <div class="info">Tổng khách: <span id="totalCustomers">0</span></div> 
+ 
+    <div class="list" id="customerList"></div> 
+</div> 
+ 
+<!-- IMPORT --> 
+<div class="import-box"> 
+    <h4>📥 Dán dữ liệu</h4> 
+    <textarea id="importData" rows="7" placeholder="📱 0374244904 — ⭐ 5 điểm"></textarea> 
+    <button class="import-btn" onclick="importCustomers()">💾 Lưu</button> 
+</div> 
+ 
+<script> 
+const ADMIN_PASSWORD = "0965579926"; 
+let customers = {}; 
+ 
+// Hàm load dữ liệu với validation để tránh 'under' hoặc corrupted 
+function loadCustomers() { 
+    try { 
+        const stored = localStorage.getItem("customers"); 
+        if (stored && stored.trim() !== '') { 
+            customers = JSON.parse(stored); 
+            // Validate object structure 
+            if (typeof customers === 'object' && customers !== null) { 
+                // Ensure all values are objects with points and purchaseCount 
+                for (let p in customers) { 
+                    if (typeof customers[p] !== 'object' || customers[p] === null) { 
+                        customers[p] = { points: 0, purchaseCount: 0 }; 
+                    } else { 
+                        customers[p].points = customers[p].points || 0; 
+                        customers[p].purchaseCount = customers[p].purchaseCount || 0; 
+                    } 
+                } 
+            } else { 
+                customers = {}; 
+                console.warn('Dữ liệu localStorage không hợp lệ, reset về rỗng.'); 
+            } 
+        } else { 
+            customers = {}; 
+        } 
+    } catch (e) { 
+        console.error('Lỗi parse localStorage:', e); 
+        customers = {}; // Reset nếu parse thất bại 
+    } 
+    updateUI(); 
+} 
+ 
+const phoneInput = document.getElementById("phone"); 
+const suggestions = document.getElementById("suggestions"); 
+ 
+/* AUTOCOMPLETE */ 
+phoneInput.addEventListener("input", () => { 
+    let v = phoneInput.value.trim(); 
+    suggestions.innerHTML = ""; 
+    if (!v) return suggestions.style.display = "none"; 
+ 
+    Object.keys(customers) 
+        .filter(p => p.startsWith(v)) 
+        .forEach(p => { 
+            let d = document.createElement("div"); 
+            d.innerHTML = `<b>${p}</b><span>⭐ ${customers[p].points}</span>`; 
+            d.onclick = () => selectPhone(p); 
+            suggestions.appendChild(d); 
+        }); 
+ 
+    suggestions.style.display = "block"; 
+}); 
+ 
+function selectPhone(p){ 
+    phoneInput.value = p; 
+    document.getElementById("points").innerText = customers[p].points; 
+    suggestions.style.display = "none"; 
+} 
+ 
+function updateUI(){ 
+    let list = document.getElementById("customerList"); 
+    let vip = document.getElementById("vipList"); 
+    list.innerHTML = ""; 
+    vip.innerHTML = ""; 
+    let count = 0; 
+ 
+    for(let p in customers){ 
+        count++; 
+        list.innerHTML += `<div onclick="selectPhone('${p}')">📱 ${p} — ⭐ ${customers[p].points} (Lần mua: ${customers[p].purchaseCount})</div>`; 
+        if(customers[p].points >= 10) 
+            vip.innerHTML += `<div onclick="selectPhone('${p}')">📱 ${p} ⭐ ${customers[p].points} (Lần mua: ${customers[p].purchaseCount})</div>`; 
+    } 
+    document.getElementById("totalCustomers").innerText = count; 
+} 
+ 
+function save(){ 
+    try { 
+        localStorage.setItem("customers", JSON.stringify(customers)); 
+        updateUI(); 
+        console.log('Dữ liệu đã lưu:', customers); 
+    } catch (e) { 
+        console.error('Lỗi lưu localStorage:', e); 
+        alert('Lỗi lưu dữ liệu. Kiểm tra console để biết chi tiết.'); 
+    } 
+} 
+ 
+/* ===== CỘNG ĐIỂM ===== */ 
+function addPoints(){ 
+    let p = phoneInput.value.trim(); 
+    let m = parseInt(money.value); 
+ 
+    if(!/^\d{10}$/.test(p) || !m) return; 
+ 
+    let added = Math.floor(m / 100); 
+    if(added <= 0) return; 
+ 
+    if(!customers[p]) { 
+        customers[p] = { points: 0, purchaseCount: 0 }; 
+    } 
+    customers[p].points += added; 
+    customers[p].purchaseCount += 1; // Tăng số lần mua lên 1 
+ 
+    document.getElementById("points").innerText = customers[p].points; 
+ 
+    alert(`✅ Đã cộng ${added} điểm. Tổng số lần mua: ${customers[p].purchaseCount}`); 
+    save(); 
+      
+    // Làm trống trường nhập tiền sau khi cộng điểm 
+    document.getElementById("money").value = ""; 
+} 
+ 
+/* ===== TRỪ ĐIỂM ===== */ 
+function redeemPoints(){ 
+    let p = phoneInput.value.trim(); 
+    let a = parseInt(redeemAmount.value); 
+ 
+    if(!customers[p] || !a || customers[p].points < a) return; 
+ 
+    customers[p].points -= a; 
+    document.getElementById("points").innerText = customers[p].points; 
+ 
+    alert(`🎁 Đã trừ ${a} điểm`); 
+    save(); 
+} 
+ 
+function resetPoints(){ 
+    let p = phoneInput.value.trim(); 
+    if(customers[p]){ 
+        customers[p].points = 0; 
+        customers[p].purchaseCount = 0; // Reset cả số lần mua  
+        document.getElementById("points").innerText = 0; 
+        save(); 
+    } 
+} 
+ 
+function deleteCustomer(){ 
+    let p = phoneInput.value.trim(); 
+    if(customers[p]){ 
+        delete customers[p]; 
+        document.getElementById("points").innerText = 0; 
+        save(); 
+    } 
+} 
+ 
+function resetAllCustomers(){ 
+    if(adminPass.value !== ADMIN_PASSWORD) return; 
+    customers = {}; 
+    document.getElementById("points").innerText = 0; 
+    save(); 
+} 
+ 
+// Hàm import với clear localStorage trước để tránh ghi đè 
+function importCustomers(){ 
+    try { 
+        // Clear localStorage trước khi import để tránh corrupted 
+        localStorage.removeItem("customers"); 
+         
+        let lines = importData.value.split("\n"); 
+        let importedCount = 0; 
+         
+        lines.forEach(l => { 
+            let m = l.match(/(\d{10}).*⭐\s*(\d+)/); 
+            if(m) { 
+                customers[m[1]] = { points: +m[2], purchaseCount: 0 }; 
+                importedCount++; 
+            } 
+        }); 
+         
+        save(); // Lưu sau khi import 
+        importData.value = ""; 
+        alert(`✅ Đã import ${importedCount} khách hàng. Dữ liệu cũ đã được clear.`); 
+    } catch (e) { 
+        console.error('Lỗi import:', e); 
+        alert('Lỗi import dữ liệu. Kiểm tra console để biết chi tiết.'); 
+    } 
+} 
+ 
+// Load dữ liệu khi trang tải 
+loadCustomers(); 
+</script> 
+ 
+</body> 
+</html>  
 
-<style>
-body{
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg,#e6e7eb,#1ef7ec);
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-}
-.box{
-    background:#fff;
-    padding:25px;
-    width:500px;
-    border-radius:12px;
-    box-shadow:0 10px 25px rgba(0,0,0,.25);
-    position:relative;
-}
-h2{text-align:center;color:#4b1cce;letter-spacing:2px}
-input,textarea{
-    width:100%;
-    padding:10px;
-    margin-top:8px;
-    font-size:15px;
-    border-radius:6px;
-    border:1px solid #ccc;
-}
-button{
-    width:100%;
-    padding:10px;
-    margin-top:8px;
-    font-size:15px;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    color:#fff;
-}
-.add{background:#28a745}
-.redeem{background:#ff9800}
-.reset{background:#dc3545}
-
-.info{
-    margin-top:10px;
-    background:#f1f1f1;
-    padding:10px;
-    border-radius:6px;
-    text-align:center;
-    font-size:16px;
-    font-weight:bold;
-}
-.list{
-    margin-top:10px;
-    max-height:160px;
-    overflow-y:auto;
-    border:1px solid #ddd;
-    border-radius:6px;
-    font-size:14px;
-}
-.list div{padding:6px;cursor:pointer}
-.list div:hover{background:#eee}
-
-/* AUTOCOMPLETE */
-.suggestions{
-    position:absolute;
-    background:#fff;
-    border:1px solid #ddd;
-    border-radius:10px;
-    max-height:160px;
-    overflow-y:auto;
-    display:none;
-    width:calc(100% - 50px);
-    z-index:20;
-    box-shadow:0 8px 20px rgba(0,0,0,.15);
-}
-.suggestions div{
-    padding:10px 12px;
-    display:flex;
-    justify-content:space-between;
-    cursor:pointer;
-}
-.suggestions div:hover{background:#f2f4ff}
-
-/* VIP */
-.vip-box{
-    position:fixed;
-    left:20px;
-    top:50%;
-    transform:translateY(-50%);
-    background:#fff;
-    padding:15px;
-    width:260px;
-    border-radius:12px;
-    box-shadow:0 10px 25px rgba(0,0,0,.25);
-}
-.vip-box h4{text-align:center;color:#ff9800}
-#vipList div{padding:6px;border-bottom:1px solid #eee;cursor:pointer}
-
-/* IMPORT */
-.import-box{
-    position:fixed;
-    top:50%;
-    transform:translateY(-50%);
-    background:#fff;
-    padding:15px;
-    width:280px;
-    border-radius:12px;
-    margin-left:900px;
-    box-shadow:0 10px 25px rgba(0,0,0,.25);
-}
-.import-box h4{text-align:center;color:#6f42c1}
-.import-btn{background:#6f42c1}
-</style>
-</head>
-
-<body>
-
-<!-- VIP -->
-<div class="vip-box">
-    <h4>🌟 Khách ≥ 10 điểm</h4>
-    <div id="vipList"></div>
-</div>
-
-<!-- FORM -->
-<div class="box">
-    <h2>🍓 THỎ FRUITS 🍓</h2>
-
-    <input id="phone" placeholder="Nhập số điện thoại">
-    <div class="suggestions" id="suggestions"></div>
-
-    <input id="money" type="number" placeholder="Nhập tiền (100 = 1 điểm)">
-    <input id="redeemAmount" type="number" placeholder="Số điểm muốn trừ">
-
-    <button class="add" onclick="addPoints()">➕ Cộng điểm</button>
-    <button class="redeem" onclick="redeemPoints()">🎁 Trừ điểm</button>
-    <button class="reset" onclick="resetPoints()">♻ Reset điểm</button>
-    <button class="reset" onclick="deleteCustomer()">❌ Xóa khách</button>
-
-    <input type="password" id="adminPass" placeholder="Mật khẩu admin">
-    <button class="reset" onclick="resetAllCustomers()">🗑 Reset toàn bộ</button>
-
-    <div class="info">Điểm hiện tại: <span id="points">0</span></div>
-    <div class="info">Tổng khách: <span id="totalCustomers">0</span></div>
-
-    <div class="list" id="customerList"></div>
-</div>
-
-<!-- IMPORT -->
-<div class="import-box">
-    <h4>📥 Dán dữ liệu</h4>
-    <textarea id="importData" rows="7" placeholder="📱 0374244904 — ⭐ 5 điểm"></textarea>
-    <button class="import-btn" onclick="importCustomers()">💾 Lưu</button>
-</div>
-
-<script>
-const ADMIN_PASSWORD = "0965579926";
-let customers = JSON.parse(localStorage.getItem("customers") || "{}");
-
-const phoneInput = document.getElementById("phone");
-const suggestions = document.getElementById("suggestions");
-
-/* AUTOCOMPLETE */
-phoneInput.addEventListener("input", () => {
-    let v = phoneInput.value.trim();
-    suggestions.innerHTML = "";
-    if (!v) return suggestions.style.display = "none";
-
-    Object.keys(customers)
-        .filter(p => p.startsWith(v))
-        .forEach(p => {
-            let d = document.createElement("div");
-            d.innerHTML = `<b>${p}</b><span>⭐ ${customers[p]}</span>`;
-            d.onclick = () => selectPhone(p);
-            suggestions.appendChild(d);
-        });
-
-    suggestions.style.display = "block";
-});
-
-function selectPhone(p){
-    phoneInput.value = p;
-    document.getElementById("points").innerText = customers[p];
-    suggestions.style.display = "none";
-}
-
-function updateUI(){
-    let list = document.getElementById("customerList");
-    let vip = document.getElementById("vipList");
-    list.innerHTML = "";
-    vip.innerHTML = "";
-    let count = 0;
-
-    for(let p in customers){
-        count++;
-        list.innerHTML += `<div onclick="selectPhone('${p}')">📱 ${p} — ⭐ ${customers[p]}</div>`;
-        if(customers[p] >= 10)
-            vip.innerHTML += `<div onclick="selectPhone('${p}')">📱 ${p} ⭐ ${customers[p]}</div>`;
-    }
-    document.getElementById("totalCustomers").innerText = count;
-}
-
-function save(){
-    localStorage.setItem("customers", JSON.stringify(customers));
-    updateUI();
-}
-
-/* ===== CỘNG ĐIỂM ===== */
-function addPoints(){
-    let p = phoneInput.value.trim();
-    let m = parseInt(money.value);
-
-    if(!/^\d{10}$/.test(p) || !m) return;
-
-    let added = Math.floor(m / 100);
-    if(added <= 0) return;
-
-    customers[p] = (customers[p] || 0) + added;
-    document.getElementById("points").innerText = customers[p];
-
-    alert(`✅ Đã cộng ${added} điểm`);
-    save();
-}
-
-/* ===== TRỪ ĐIỂM ===== */
-function redeemPoints(){
-    let p = phoneInput.value.trim();
-    let a = parseInt(redeemAmount.value);
-
-    if(!customers[p] || !a || customers[p] < a) return;
-
-    customers[p] -= a;
-    document.getElementById("points").innerText = customers[p];
-
-    alert(`🎁 Đã trừ ${a} điểm`);
-    save();
-}
-
-function resetPoints(){
-    let p = phoneInput.value.trim();
-    if(customers[p]){
-        customers[p] = 0;
-        document.getElementById("points").innerText = 0;
-        save();
-    }
-}
-
-function deleteCustomer(){
-    let p = phoneInput.value.trim();
-    if(customers[p]){
-        delete customers[p];
-        document.getElementById("points").innerText = 0;
-        save();
-    }
-}
-
-function resetAllCustomers(){
-    if(adminPass.value !== ADMIN_PASSWORD) return;
-    customers = {};
-    document.getElementById("points").innerText = 0;
-    save();
-}
-
-function importCustomers(){
-    importData.value.split("\n").forEach(l => {
-        let m = l.match(/(\d{10}).*⭐\s*(\d+)/);
-        if(m) customers[m[1]] = +m[2];
-    });
-    save();
-    importData.value = "";
-}
-
-updateUI();
-</script>
-
-</body>
-</html>
 
 
 
