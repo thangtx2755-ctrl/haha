@@ -158,7 +158,38 @@ button{
  
 <script> 
 const ADMIN_PASSWORD = "0965579926"; 
-let customers = JSON.parse(localStorage.getItem("customers") || "{}"); 
+let customers = {}; 
+ 
+// Hàm load dữ liệu với validation để tránh 'under' hoặc corrupted 
+function loadCustomers() { 
+    try { 
+        const stored = localStorage.getItem("customers"); 
+        if (stored && stored.trim() !== '') { 
+            customers = JSON.parse(stored); 
+            // Validate object structure 
+            if (typeof customers === 'object' && customers !== null) { 
+                // Ensure all values are objects with points and purchaseCount 
+                for (let p in customers) { 
+                    if (typeof customers[p] !== 'object' || customers[p] === null) { 
+                        customers[p] = { points: 0, purchaseCount: 0 }; 
+                    } else { 
+                        customers[p].points = customers[p].points || 0; 
+                        customers[p].purchaseCount = customers[p].purchaseCount || 0; 
+                    } 
+                } 
+            } else { 
+                customers = {}; 
+                console.warn('Dữ liệu localStorage không hợp lệ, reset về rỗng.'); 
+            } 
+        } else { 
+            customers = {}; 
+        } 
+    } catch (e) { 
+        console.error('Lỗi parse localStorage:', e); 
+        customers = {}; // Reset nếu parse thất bại 
+    } 
+    updateUI(); 
+} 
  
 const phoneInput = document.getElementById("phone"); 
 const suggestions = document.getElementById("suggestions"); 
@@ -204,8 +235,14 @@ function updateUI(){
 } 
  
 function save(){ 
-    localStorage.setItem("customers", JSON.stringify(customers)); 
-    updateUI(); 
+    try { 
+        localStorage.setItem("customers", JSON.stringify(customers)); 
+        updateUI(); 
+        console.log('Dữ liệu đã lưu:', customers); 
+    } catch (e) { 
+        console.error('Lỗi lưu localStorage:', e); 
+        alert('Lỗi lưu dữ liệu. Kiểm tra console để biết chi tiết.'); 
+    } 
 } 
  
 /* ===== CỘNG ĐIỂM ===== */ 
@@ -228,7 +265,7 @@ function addPoints(){
  
     alert(`✅ Đã cộng ${added} điểm. Tổng số lần mua: ${customers[p].purchaseCount}`); 
     save(); 
-     
+      
     // Làm trống trường nhập tiền sau khi cộng điểm 
     document.getElementById("money").value = ""; 
 } 
@@ -251,7 +288,7 @@ function resetPoints(){
     let p = phoneInput.value.trim(); 
     if(customers[p]){ 
         customers[p].points = 0; 
-        customers[p].purchaseCount = 0; // Reset cả số lần mua 
+        customers[p].purchaseCount = 0; // Reset cả số lần mua  
         document.getElementById("points").innerText = 0; 
         save(); 
     } 
@@ -273,22 +310,38 @@ function resetAllCustomers(){
     save(); 
 } 
  
+// Hàm import với clear localStorage trước để tránh ghi đè 
 function importCustomers(){ 
-    importData.value.split("\n").forEach(l => { 
-        let m = l.match(/(\d{10}).*⭐\s*(\d+)/); 
-        if(m) { 
-            customers[m[1]] = { points: +m[2], purchaseCount: 0 }; // Khi import, số lần mua mặc định là 0 
-        } 
-    }); 
-    save(); 
-    importData.value = ""; 
+    try { 
+        // Clear localStorage trước khi import để tránh corrupted 
+        localStorage.removeItem("customers"); 
+         
+        let lines = importData.value.split("\n"); 
+        let importedCount = 0; 
+         
+        lines.forEach(l => { 
+            let m = l.match(/(\d{10}).*⭐\s*(\d+)/); 
+            if(m) { 
+                customers[m[1]] = { points: +m[2], purchaseCount: 0 }; 
+                importedCount++; 
+            } 
+        }); 
+         
+        save(); // Lưu sau khi import 
+        importData.value = ""; 
+        alert(`✅ Đã import ${importedCount} khách hàng. Dữ liệu cũ đã được clear.`); 
+    } catch (e) { 
+        console.error('Lỗi import:', e); 
+        alert('Lỗi import dữ liệu. Kiểm tra console để biết chi tiết.'); 
+    } 
 } 
  
-updateUI(); 
+// Load dữ liệu khi trang tải 
+loadCustomers(); 
 </script> 
  
 </body> 
-</html> 
+</html>  
 
 
 
